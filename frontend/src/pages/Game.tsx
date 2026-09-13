@@ -175,7 +175,10 @@ function Game() {
         return gameOver.winner === color
           ? "Opponent resigned"
           : "You resigned"
-
+      case "timeout":
+        return gameOver.winner === color
+        ? "You won on time"
+        : "You lost on time"
       default:
         return "Game over"
     }
