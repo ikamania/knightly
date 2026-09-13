@@ -1,8 +1,9 @@
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from django.utils import timezone
 
-from .models import Game
 from .chess_logic import validate_and_apply_move
+from .models import Game
 
 
 class GameConsumer(AsyncJsonWebsocketConsumer):
@@ -48,15 +49,19 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
         await self.accept()
 
+        await self.start_clock(game)
+
         await self.send_json({
             "type": "game_state",
             "game_id": self.game_id,
             "fen": game.fen,
             "color": self.player_color,
             "status": game.status,
+            "white_time": game.white_time,
+            "black_time": game.black_time,
         })
 
-    async def disconnect(self, close_code):
+    async def disconnect(self, code):
         if hasattr(self, "game_group_name"):
             await self.channel_layer.group_discard(
                 self.game_group_name,
@@ -96,6 +101,30 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         if not game:
             return
 
+        timeout_winner = await self.update_game_clock(game)
+        if timeout_winner:
+            result = (
+                "BLACK_WINS"
+                if timeout_winner == "black"
+                else "WHITE_WINS"
+            )
+
+            await self.end_game(game, result)
+
+            await self.channel_layer.group_send(
+                self.game_group_name,
+                {
+                    "type": "game_message",
+                    "data": {
+                        "type": "game_over",
+                        "reason": "timeout",
+                        "winner": timeout_winner,
+                    },
+                },
+            )
+
+            return
+
         result = await self.validate_move(
             game.fen, from_square, to_square, promotion
         )
@@ -116,18 +145,26 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 "from": from_square,
                 "to": to_square,
                 "promotion": promotion,
+                "white_time": game.white_time,
+                "black_time": game.black_time,
             },
         )
 
         if result["is_game_over"]:
-            winner = None
-            reason = "stalemate"
+            winner = result.get("winner")
+            reason = "checkmate" if result["is_checkmate"] else "stalemate"
 
-            if result["is_checkmate"]:
-                winner = "white" if self.player_color == "white" else "black"
-                reason = "checkmate"
+            if winner == "white":
+                game_result = "WHITE_WINS"
+            elif winner == "black":
+                game_result = "BLACK_WINS"
+            else:
+                game_result = "DRAW"
 
-            await self.end_game(game)
+            await self.end_game(
+                game,
+                game_result,
+            )
 
             await self.channel_layer.group_send(
                 self.game_group_name,
@@ -147,6 +184,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             "from": event["from"],
             "to": event["to"],
             "promotion": event.get("promotion"),
+            "white_time": event["white_time"],
+            "black_time": event["black_time"],
         })
 
     async def handle_draw(self):
@@ -183,7 +222,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             return
 
         if accepted:
-            await self.end_game(game)
+            await self.end_game(game, "DRAW")
 
             await self.channel_layer.group_send(
                 self.game_group_name,
@@ -221,7 +260,13 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             else "white"
         )
 
-        await self.end_game(game)
+        result = (
+            "BLACK_WINS"
+            if winner == "black"
+            else "WHITE_WINS"
+        )
+
+        await self.end_game(game, result)
 
         await self.channel_layer.group_send(
             self.game_group_name,
@@ -249,8 +294,55 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         return game
 
     @database_sync_to_async
+    def start_clock(self, game: Game):
+        if game.turn_started_at is None:
+            game.turn_started_at = timezone.now()
+
+            game.save(update_fields=["turn_started_at"])
+
+    @database_sync_to_async
     def validate_move(self, fen, from_sq, to_sq, promotion=None):
         return validate_and_apply_move(fen, from_sq, to_sq, promotion)
+
+    @database_sync_to_async
+    def update_game_clock(self, game):
+        now = timezone.now()
+
+        elapsed = int(
+            (now - game.turn_started_at).total_seconds()
+        )
+
+        timeout_winner = None
+
+        if game.fen.split()[1] == "w":
+            game.white_time = max(
+                0,
+                game.white_time - elapsed,
+            )
+
+            if game.white_time == 0:
+                timeout_winner = "black"
+
+        else:
+            game.black_time = max(
+                0,
+                game.black_time - elapsed,
+            )
+
+            if game.black_time == 0:
+                timeout_winner = "white"
+
+        game.turn_started_at = now
+
+        game.save(
+            update_fields=[
+                "white_time",
+                "black_time",
+                "turn_started_at",
+            ]
+        )
+
+        return timeout_winner
 
     @database_sync_to_async
     def update_game_fen(self, game, new_fen):
@@ -265,6 +357,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             return None
 
     @database_sync_to_async
-    def end_game(self, game):
+    def end_game(self, game: Game, result: str):
         game.status = Game.Status.FINISHED
-        game.save(update_fields=["status"])
+        game.result = result
+
+        game.save( update_fields=["status", "result"])
