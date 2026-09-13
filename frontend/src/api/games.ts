@@ -13,7 +13,7 @@ export interface GameResponse {
   fen: string
 }
 
-export async function findGame(): Promise<FindGameResponse> {
+export async function findGame(gameTime: number): Promise<FindGameResponse> {
   const access = localStorage.getItem("access")
 
   const response = await fetch(`${API_URL}/find/`, {
@@ -22,6 +22,9 @@ export async function findGame(): Promise<FindGameResponse> {
       Authorization: `Bearer ${access}`,
       "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      game_time: gameTime,
+    }),
   })
 
   if (!response.ok) {

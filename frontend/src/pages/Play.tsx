@@ -17,7 +17,7 @@ function Play() {
     const socket = createMatchmakingSocket(
       async () => {
         try {
-          const data = await findGame()
+          const data = await findGame(10)
 
           setGameId(data.game_id)
 
