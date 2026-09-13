@@ -23,6 +23,26 @@ class FindGameView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        game_time = request.data.get("game_time")
+
+        if game_time is None:
+            return Response(
+                {"detail": "game_time is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            game_time = int(game_time)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "game_time must be a intiger"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if game_time not in Game.TimeControl.values:
+            return Response(
+                {"detail": "Invalid game_time"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         user = request.user
 
         existing_game = (
@@ -68,6 +88,7 @@ class FindGameView(APIView):
                 .filter(
                     status=Game.Status.WAITING,
                     black_player__isnull=True,
+                    time_control=game_time,
                 )
                 .exclude(white_player=user)
                 .first()
@@ -109,6 +130,9 @@ class FindGameView(APIView):
             white_player=user,
             fen=STARTING_FEN,
             status=Game.Status.WAITING,
+            time_control=game_time,
+            white_time=game_time * 60,
+            black_time=game_time * 60,
         )
 
         return Response(
