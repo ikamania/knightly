@@ -50,6 +50,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         await self.accept()
 
         await self.start_clock(game)
+        clocks = self.calculate_game_clocks(game)
 
         await self.send_json({
             "type": "game_state",
@@ -57,8 +58,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             "fen": game.fen,
             "color": self.player_color,
             "status": game.status,
-            "white_time": game.white_time,
-            "black_time": game.black_time,
+            "white_time": clocks["white_time"],
+            "black_time": clocks["black_time"],
         })
 
     async def disconnect(self, code):
@@ -293,6 +294,43 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
         return game
 
+    @staticmethod
+    def calculate_game_clocks(game: Game):
+        if game.turn_started_at is None:
+            return {
+                "white_time": game.white_time,
+                "black_time": game.black_time,
+                "timeout_winner": None,
+                "now": None,
+            }
+
+        now = timezone.now()
+        elapsed = int(
+            (now - game.turn_started_at).total_seconds()
+        )
+
+        white_time = game.white_time
+        black_time = game.black_time
+
+        if game.fen.split()[1] == "w":
+            white_time = max(0, white_time - elapsed)
+        else:
+            black_time = max(0, black_time - elapsed)
+
+        timeout_winner = None
+
+        if white_time == 0:
+            timeout_winner = "black"
+        elif black_time == 0:
+            timeout_winner = "white"
+
+        return {
+            "white_time": white_time,
+            "black_time": black_time,
+            "timeout_winner": timeout_winner,
+            "now": now,
+        }
+
     @database_sync_to_async
     def start_clock(self, game: Game):
         if game.turn_started_at is None:
@@ -305,34 +343,14 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         return validate_and_apply_move(fen, from_sq, to_sq, promotion)
 
     @database_sync_to_async
-    def update_game_clock(self, game):
-        now = timezone.now()
+    def update_game_clock(self, game: Game):
+        clocks = self.calculate_game_clocks(game)
 
-        elapsed = int(
-            (now - game.turn_started_at).total_seconds()
-        )
+        game.white_time = clocks["white_time"]
+        game.black_time = clocks["black_time"]
 
-        timeout_winner = None
-
-        if game.fen.split()[1] == "w":
-            game.white_time = max(
-                0,
-                game.white_time - elapsed,
-            )
-
-            if game.white_time == 0:
-                timeout_winner = "black"
-
-        else:
-            game.black_time = max(
-                0,
-                game.black_time - elapsed,
-            )
-
-            if game.black_time == 0:
-                timeout_winner = "white"
-
-        game.turn_started_at = now
+        if clocks["now"] is not None:
+            game.turn_started_at = clocks["now"]
 
         game.save(
             update_fields=[
@@ -342,7 +360,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             ]
         )
 
-        return timeout_winner
+        return clocks["timeout_winner"]
 
     @database_sync_to_async
     def update_game_fen(self, game, new_fen):
