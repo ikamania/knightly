@@ -7,6 +7,7 @@ import ChessBoard from "../components/board/ChessBoard"
 import { makeMove } from "../logic/move"
 import { toSquare } from "../utils/coordinates"
 import Loading from "./Loading"
+import Clock from "../components/clock/Clock"
 
 function Game() {
   const { id } = useParams()
@@ -18,6 +19,9 @@ function Game() {
 
   const [game, setGame] = useState<Chess | null>(null)
   const [color, setColor] = useState<"white" | "black">("white")
+
+  const [whiteTime, setWhiteTime] = useState(0)
+  const [blackTime, setBlackTime] = useState(0)
 
   const [gameOver, setGameOver] = useState<{
     reason: string
@@ -47,6 +51,9 @@ function Game() {
           navigate("/")
           return
         }
+
+        setWhiteTime(data.white_time)
+        setBlackTime(data.black_time)
 
         const chess = new Chess(data.fen)
         setGame(chess)
@@ -139,6 +146,20 @@ function Game() {
     [game],
   )
 
+  useEffect(() => {
+    if (!game || gameOver) return
+
+    const interval = setInterval(() => {
+      if (game.turn() === "w") {
+        setWhiteTime(time => Math.max(0, time - 1))
+      } else {
+        setBlackTime(time => Math.max(0, time - 1))
+      }
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [game, gameOver])
+
   function sendMessage(type: "draw" | "resign") {
     socketRef.current?.send({ type })
   }
@@ -191,13 +212,15 @@ function Game() {
   return (
     <main className="flex min-h-screen items-center justify-center">
       <div className="flex items-center gap-[2rem]">
-        <div className="relative">
+        <div className="relative flex flex-col items-center">
+          <Clock seconds={color === "black" ? whiteTime : blackTime} />
           <ChessBoard
             game={game}
             playerColor={color === "white" ? "w" : "b"}
             orientation={color}
             onMove={sendMove}
           />
+          <Clock seconds={color === "white" ? whiteTime : blackTime} />
 
           {gameOver && (
             <div className="absolute left-1/2 top-1/2 w-[16rem] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-neutral-200 bg-white p-[1.5rem] text-center shadow-lg">
@@ -242,9 +265,7 @@ function Game() {
               disabled={!!gameOver || drawOffer === "sent"}
               className="w-full rounded-md border border-neutral-300 px-[1rem] py-[0.5rem] text-sm transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {drawOffer === "sent"
-                ? "Offered"
-                : "Draw"}
+              {drawOffer === "sent" ? "Offered" : "Draw"}
             </button>
           )}
 
