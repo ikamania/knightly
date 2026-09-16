@@ -28,6 +28,8 @@ export type ServerMessage =
       fen: string
       color: "white" | "black"
       status: string
+      white_time: number
+      black_time: number
     }
   | {
       type: "move_made"
