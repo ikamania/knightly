@@ -31,12 +31,15 @@ def validate_and_apply_move(
     checkmate = board.is_checkmate()
     stalemate = board.is_stalemate()
 
+    winner = None
+    if checkmate:
+        winner = "white" if board.turn == chess.BLACK else "black"
 
-    result = {
+    return {
         "valid": True,
         "new_fen": board.fen(),
-        "is_checkmate": checkmate, 
-        "is_stalmate": stalemate,
+        "is_checkmate": checkmate,
+        "is_stalemate": stalemate,
         "is_game_over": stalemate or checkmate,
+        "winner": winner,
     }
-    return result
