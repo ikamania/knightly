@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Chess } from "chess.js"
 import { createGameSocket } from "../websocket/gameSocket"
-import type { ServerMessage, PromotionPiece } from "../websocket/gameSocket"
+import type { ServerMessage, PromotionPiece, GameMessage } from "../websocket/gameSocket"
 import ChessBoard from "../components/board/ChessBoard"
 import { makeMove } from "../logic/move"
 import { toSquare } from "../utils/coordinates"
@@ -151,22 +151,34 @@ function Game() {
 
     const interval = setInterval(() => {
       if (game.turn() === "w") {
-        setWhiteTime(time => Math.max(0, time - 1))
+        setWhiteTime(time => {
+          if (time <= 1) {
+            sendMessage({ type: "timeout" })
+            return 0
+          }
+          return time - 1
+        })
       } else {
-        setBlackTime(time => Math.max(0, time - 1))
+        setBlackTime(time => {
+          if (time <= 1) {
+            sendMessage({ type: "timeout" })
+            return 0
+          }
+          return time - 1
+        })
       }
     }, 1000)
 
     return () => clearInterval(interval)
   }, [game, gameOver])
 
-  function sendMessage(type: "draw" | "resign") {
-    socketRef.current?.send({ type })
+  function sendMessage(message: GameMessage) {
+    socketRef.current?.send(message)
   }
 
   function handleDraw() {
     if (drawOffer === "none") {
-      sendMessage("draw")
+      sendMessage({ type: "draw" })
       setDrawOffer("sent")
     }
   }
@@ -270,7 +282,7 @@ function Game() {
           )}
 
           <button
-            onClick={() => sendMessage("resign")}
+            onClick={() => sendMessage({ type: "resign" })}
             disabled={!!gameOver}
             className="w-full rounded-md bg-black px-[1rem] py-[0.5rem] text-sm text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >

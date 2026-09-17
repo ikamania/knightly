@@ -11,6 +11,10 @@ export type GameMessage =
     }
   |
     {
+      type: "timeout"
+    }
+  |
+    {
       type: "draw_response"
       accepted: boolean
     }
