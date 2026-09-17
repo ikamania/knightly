@@ -50,17 +50,11 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         await self.accept()
 
         await self.start_clock(game)
+
+        if game.status == Game.Status.ACTIVE:
+            await self.check_timeout(game)
+
         clocks = self.calculate_game_clocks(game)
-
-        if clocks["timeout_winner"] and game.status == Game.Status.ACTIVE:
-            event = await database_sync_to_async(
-                GameConsumer.apply_timeout
-            )(game, clocks)
-
-            await self.channel_layer.group_send(
-                self.game_group_name,
-                event,
-            )
 
         await self.send_json({
             "type": "game_state",
@@ -75,24 +69,11 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, code):
         if hasattr(self, "game_group_name"):
             game = await self.get_game()
+            if not game:
+                return
 
-            if game and game.status == Game.Status.ACTIVE:
-                clocks = self.calculate_game_clocks(game)
-
-                if clocks["timeout_winner"]:
-                    event = await database_sync_to_async(
-                        GameConsumer.apply_timeout
-                    )(game, clocks)
-
-                    await self.channel_layer.group_send(
-                        self.game_group_name,
-                        event,
-                    )
-
-            await self.channel_layer.group_discard(
-                self.game_group_name,
-                self.channel_name,
-            )
+            if game.status == Game.Status.ACTIVE:
+                await self.check_timeout(game)
 
     async def receive_json(self, content):
         handlers = {
@@ -100,6 +81,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             "draw": self.handle_draw,
             "draw_response": self.handle_draw_response,
             "resign": self.handle_resign,
+            "timeout": self.handle_timeout,
         }
 
         handler = handlers.get(content.get("type"))
@@ -142,6 +124,14 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 self.game_group_name,
                 event,
             )
+
+    async def handle_timeout(self, content=None):
+        game = await self.get_active_game()
+
+        if not game:
+            return
+
+        await self.check_timeout(game)
 
     async def move_made(self, event):
         await self.send_json({
@@ -215,6 +205,23 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
         await self.end_game(game, self.game_result(winner))
         await self.send_game_over("resignation", winner)
+
+    async def check_timeout(self, game):
+        clocks = self.calculate_game_clocks(game)
+
+        if not clocks["timeout_winner"]:
+            return False
+
+        event = await database_sync_to_async(
+            GameConsumer.apply_timeout
+        )(game, clocks)
+
+        await self.channel_layer.group_send(
+            self.game_group_name,
+            event,
+        )
+
+        return True
 
     async def send_game_over(self, reason, winner=None):
         await self.channel_layer.group_send(
