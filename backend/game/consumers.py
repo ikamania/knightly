@@ -52,6 +52,16 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         await self.start_clock(game)
         clocks = self.calculate_game_clocks(game)
 
+        if clocks["timeout_winner"] and game.status == Game.Status.ACTIVE:
+            event = await database_sync_to_async(
+                GameConsumer.apply_timeout
+            )(game, clocks)
+
+            await self.channel_layer.group_send(
+                self.game_group_name,
+                event,
+            )
+
         await self.send_json({
             "type": "game_state",
             "game_id": self.game_id,
@@ -64,6 +74,21 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
     async def disconnect(self, code):
         if hasattr(self, "game_group_name"):
+            game = await self.get_game()
+
+            if game and game.status == Game.Status.ACTIVE:
+                clocks = self.calculate_game_clocks(game)
+
+                if clocks["timeout_winner"]:
+                    event = await database_sync_to_async(
+                        GameConsumer.apply_timeout
+                    )(game, clocks)
+
+                    await self.channel_layer.group_send(
+                        self.game_group_name,
+                        event,
+                    )
+
             await self.channel_layer.group_discard(
                 self.game_group_name,
                 self.channel_name,
@@ -218,35 +243,13 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
     def play_move(self, game, from_square, to_square, promotion=None):
         clocks = self.calculate_game_clocks(game)
 
+        if clocks["timeout_winner"]:
+            return GameConsumer.apply_timeout(game, clocks)
+
         game.white_time = clocks["white_time"]
         game.black_time = clocks["black_time"]
 
         game.turn_started_at = clocks["now"]
-
-        timeout_winner = clocks["timeout_winner"]
-
-        if timeout_winner:
-            game.status = Game.Status.FINISHED
-            game.result = self.game_result(timeout_winner)
-
-            game.save(
-                update_fields=[
-                    "white_time",
-                    "black_time",
-                    "turn_started_at",
-                    "status",
-                    "result",
-                ]
-            )
-
-            return {
-                "type": "game_message",
-                "data": {
-                    "type": "game_over",
-                    "reason": "timeout",
-                    "winner": timeout_winner,
-                },
-            }
 
         result = validate_and_apply_move(
             game.fen,
@@ -350,6 +353,35 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             "black_time": black_time,
             "timeout_winner": timeout_winner,
             "now": now,
+        }
+
+    @staticmethod
+    def apply_timeout(game: Game, clocks: dict):
+        game.white_time = clocks["white_time"]
+        game.black_time = clocks["black_time"]
+
+        game.turn_started_at = clocks["now"]
+
+        game.status = Game.Status.FINISHED
+        game.result = GameConsumer.game_result(clocks["timeout_winner"])
+
+        game.save(
+            update_fields=[
+                "white_time",
+                "black_time",
+                "turn_started_at",
+                "status",
+                "result",
+            ]
+        )
+
+        return {
+            "type": "game_message",
+            "data": {
+                "type": "game_over",
+                "reason": "timeout",
+                "winner": clocks["timeout_winner"],
+            },
         }
 
     @database_sync_to_async
