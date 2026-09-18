@@ -1,17 +1,4 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&display=swap');
-
-h1,
-h2,
-h3,
-button {
-  font-family: "Cinzel";
-}
-
-input,
-p {
-  font-family: sans-serif;
-}
 
 button {
   cursor: pointer;
