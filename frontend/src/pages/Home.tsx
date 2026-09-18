@@ -1,9 +1,13 @@
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../auth/AuthContext"
+import { useState } from "react"
+import PlayTimeButton from "../components/play/PlayTimeButton"
 
 function Home() {
   const { user } = useAuth()
   const navigate = useNavigate()
+
+  const [showPlaytimes, setShowPlaytimes] = useState(false)
 
   return (
     <main className="min-h-screen bg-white">
@@ -42,17 +46,29 @@ function Home() {
             Simple, fast and beautiful.
           </p>
 
-          <div className="mt-[2.5rem] flex gap-[1rem]">
+          <div className="mt-[2.5rem] flex items-center gap-[1rem]">
             <button
-              onClick={() => navigate("/play")}
-              className="rounded-[0.5rem] bg-black px-[2rem] py-[1rem] text-[1.125rem] text-white"
+              onClick={() => setShowPlaytimes(prev => !prev)}
+              className="
+                w-[13rem] h-[3.5rem] rounded-[0.5rem] bg-black px-[2rem] py-[1rem] 
+                text-[1.125rem] text-white flex items-center justify-center
+              "
             >
-              Play Online
+              {showPlaytimes ? (
+                <div className="flex gap-[0.4rem]">
+                  <PlayTimeButton playtime={3} onSelect={() => setShowPlaytimes(false)} />
+                  <PlayTimeButton playtime={5} onSelect={() => setShowPlaytimes(false)} />
+                  <PlayTimeButton playtime={10} onSelect={() => setShowPlaytimes(false)} />
+                </div>
+              ) : ("Play Online")}
             </button>
 
             <button
               onClick={() => navigate("/play/computer")}
-              className="rounded-[0.5rem] border border-neutral-300 px-[2rem] py-[1rem] text-[1.125rem]"
+              className="
+                rounded-[0.5rem] border border-neutral-300 flex items-center
+                px-[2rem] py-[1rem] text-[1.125rem] h-[3.5rem]
+              "
             >
               Play Computer
             </button>

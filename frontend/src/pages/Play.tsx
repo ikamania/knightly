@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { findGame, cancelGame } from "../api/games"
 import { createMatchmakingSocket } from "../websocket/matchmakingSocket"
 import Loading from "./Loading"
 
 function Play() {
   const navigate = useNavigate()
+
+  const [searchParams] = useSearchParams()
+  const rawTime = Number(searchParams.get("time"))
+  const playtime = Number.isFinite(rawTime) && rawTime > 0 ? rawTime : 10
 
   const [gameId, setGameId] = useState<number | null>(null)
   const [error, setError] = useState("")
@@ -17,7 +21,7 @@ function Play() {
     const socket = createMatchmakingSocket(
       async () => {
         try {
-          const data = await findGame(10)
+          const data = await findGame(playtime)
 
           setGameId(data.game_id)
 
@@ -46,7 +50,7 @@ function Play() {
       socket.close()
       socketRef.current = null
     }
-  }, [navigate])
+  }, [navigate, playtime])
 
   async function handleCancel() {
     if (!gameId || cancelling) {
