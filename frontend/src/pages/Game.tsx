@@ -32,6 +32,8 @@ function Game() {
     "none" | "sent" | "received"
   >("none")
 
+  const timeoutSent = useRef(false)
+
   useEffect(() => {
     if (!id) {
       navigate("/")
@@ -151,26 +153,21 @@ function Game() {
 
     const interval = setInterval(() => {
       if (game.turn() === "w") {
-        setWhiteTime(time => {
-          if (time <= 1) {
-            sendMessage({ type: "timeout" })
-            return 0
-          }
-          return time - 1
-        })
+        setWhiteTime(time => Math.max(time - 1, 0))
       } else {
-        setBlackTime(time => {
-          if (time <= 1) {
-            sendMessage({ type: "timeout" })
-            return 0
-          }
-          return time - 1
-        })
+        setBlackTime(time => Math.max(time - 1, 0))
       }
     }, 1000)
 
     return () => clearInterval(interval)
   }, [game, gameOver])
+
+  useEffect(() => {
+    if (!timeoutSent.current && (whiteTime === 0 || blackTime === 0)) {
+      timeoutSent.current = true
+      sendMessage({ type: "timeout" })
+    }
+  }, [whiteTime, blackTime])
 
   function sendMessage(message: GameMessage) {
     socketRef.current?.send(message)
