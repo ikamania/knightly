@@ -1,8 +1,9 @@
 import { MATCHMAKING_WS_URL } from "../config"
+import type { ServerMessage } from "./gameSocket"
 
 export function createMatchmakingSocket(
   onOpen: () => void,
-  onMessage: (data: any) => void,
+  onMessage: (data: ServerMessage) => void,
   onError?: () => void
 ) {
   const access = localStorage.getItem("access")
@@ -20,10 +21,10 @@ export function createMatchmakingSocket(
   }
 
   socket.onmessage = (event) => {
-    onMessage(JSON.parse(event.data))
+    onMessage(JSON.parse(event.data) as ServerMessage)
   }
 
-  socket.onerror = (event) => {
+  socket.onerror = () => {
     if (!connected && !closed) {
       onError?.()
     }

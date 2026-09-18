@@ -17,6 +17,8 @@ function Profile() {
     }
 
     async function fetchUser() {
+      if (!username) return
+
       try {
         const data = await getUserProfile(username)
         setUser(data)

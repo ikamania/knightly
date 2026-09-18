@@ -33,7 +33,7 @@ function Auth() {
 
       navigate("/")
     } catch (e) {
-      setError(e.message)
+      setError(e instanceof Error ? e.message : "Something went wrong")
     }
   }
 
