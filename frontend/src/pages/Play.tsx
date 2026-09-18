@@ -25,11 +25,7 @@ function Play() {
             navigate(`/game/${data.game_id}`)
           }
         } catch (error) {
-          if (error instanceof Error) {
-            setError(error.message)
-          } else {
-            setError("Failed to find a game")
-          }
+          setError(error instanceof Error ? error.message: "Failed to find a game")
         }
       },
 
@@ -59,11 +55,12 @@ function Play() {
 
     setCancelling(true)
 
-    socketRef.current?.close()
-    socketRef.current = null
-
     try {
       await cancelGame(gameId)
+
+      socketRef.current?.close()
+      socketRef.current = null
+
       navigate("/")
     } catch (error) {
       console.error("Failed to cancel game:", error)
@@ -72,13 +69,7 @@ function Play() {
   }
 
   if (error) {
-    return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="text-red-500">
-          {error}
-        </p>
-      </main>
-    )
+    return <Loading message={error} />
   }
 
   if (!gameId) {
