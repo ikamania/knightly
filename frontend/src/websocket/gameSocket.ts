@@ -62,10 +62,14 @@ export type ServerMessage =
       type: "error"
       message: string
     }
+  | {
+      type: "matched"
+      game_id: number
+    }
 
 export function createGameSocket(
   gameId: string,
-  onMessage: (data: any) => void
+  onMessage: (data: ServerMessage) => void
 ) {
   const access = localStorage.getItem("access")
 
