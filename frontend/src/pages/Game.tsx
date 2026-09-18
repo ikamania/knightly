@@ -20,8 +20,8 @@ function Game() {
   const [game, setGame] = useState<Chess | null>(null)
   const [color, setColor] = useState<"white" | "black">("white")
 
-  const [whiteTime, setWhiteTime] = useState(0)
-  const [blackTime, setBlackTime] = useState(0)
+  const [whiteTime, setWhiteTime] = useState<number | null>(null)
+  const [blackTime, setBlackTime] = useState<number | null>(null)
 
   const [gameOver, setGameOver] = useState<{
     reason: string
