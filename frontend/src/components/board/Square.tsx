@@ -8,17 +8,18 @@ type Props = {
   onPointerDown: (e: React.PointerEvent) => void
   onPointerUp: () => void
   isLegalTarget: boolean
+  isSelected: boolean
 }
 
 
-export default function Square({ isDark, piece, onPointerDown, onPointerUp, isLegalTarget }: Props) {
+export default function Square({ isDark, piece, onPointerDown, onPointerUp, isLegalTarget, isSelected }: Props) {
   return (
     <div
       onPointerUp={onPointerUp}
       onPointerDown={onPointerDown}
       className={`w-[5rem] h-[5rem] flex items-center justify-center relative ${
         isDark ? "bg-[#739552]" : "bg-[#ebecd0]"
-      }`}
+      } ${isSelected ? "ring-2 ring-inset ring-yellow-400" : ""}`}
     >
       {piece && <Piece piece={piece.type} color={piece.color} />}
 

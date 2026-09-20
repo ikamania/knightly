@@ -23,6 +23,7 @@ export default function ChessBoard({ game, playerColor, orientation, onMove }: P
     dragging,
     legalTargets,
     pendingPromotion,
+    selected,
     onPointerDown,
     onPointerMove,
     onPointerUp,
@@ -56,12 +57,15 @@ export default function ChessBoard({ game, playerColor, orientation, onMove }: P
               ([tr, tc]) => tr === viewR && tc === viewC
             )
 
+            const isSelected = !!selected && selected[0] === viewR && selected[1] === viewC
+
             return (
               <Square
                 key={`${r}-${c}`}
                 isDark={isDark}
                 piece={hidden ? null : cell}
-                isLegalTarget={isLegalTarget && !!dragging}
+                isLegalTarget={isLegalTarget && (!!dragging || !!selected)}
+                isSelected={isSelected}
                 onPointerDown={(e) => onPointerDown(e, viewR, viewC, cell)}
                 onPointerUp={() => onPointerUp(viewR, viewC)}
               />
