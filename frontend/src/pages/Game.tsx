@@ -16,12 +16,13 @@ function Game() {
   const socketRef = useRef<ReturnType<typeof createGameSocket> | null>(null)
   const lastLocalMoveRef = useRef<string | null>(null)
   const prevFenRef = useRef<string | null>(null)
+  const lastTickRef = useRef<number>(Date.now())
 
   const [game, setGame] = useState<Chess | null>(null)
   const [color, setColor] = useState<"white" | "black">("white")
 
-  const [whiteTime, setWhiteTime] = useState<number | null>(null)
-  const [blackTime, setBlackTime] = useState<number | null>(null)
+  const [whiteTime, setWhiteTime] = useState<number>(1)
+  const [blackTime, setBlackTime] = useState<number>(1)
 
   const [gameOver, setGameOver] = useState<{
     reason: string
@@ -151,11 +152,21 @@ function Game() {
   useEffect(() => {
     if (!game || gameOver) return
 
+    lastTickRef.current = Date.now()
+
     const interval = setInterval(() => {
+      const now = Date.now()
+      const elapsed = now - lastTickRef.current
+
+      lastTickRef.current = now
+
+      const seconds = Math.floor(elapsed / 1000)
+      if (seconds <= 0) return
+
       if (game.turn() === "w") {
-        setWhiteTime(time => Math.max(time - 1, 0))
+        setWhiteTime(time => Math.max(time - seconds, 0))
       } else {
-        setBlackTime(time => Math.max(time - 1, 0))
+        setBlackTime(time => Math.max(time - seconds, 0))
       }
     }, 1000)
 
