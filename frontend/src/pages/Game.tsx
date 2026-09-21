@@ -55,8 +55,8 @@ function Game() {
           return
         }
 
-        setWhiteTime(data.white_time)
-        setBlackTime(data.black_time)
+        setWhiteTime(data.white_time * 1000) // convert to milliseconds
+        setBlackTime(data.black_time * 1000)
 
         const chess = new Chess(data.fen)
         setGame(chess)
@@ -160,21 +160,18 @@ function Game() {
 
       lastTickRef.current = now
 
-      const seconds = Math.floor(elapsed / 1000)
-      if (seconds <= 0) return
-
       if (game.turn() === "w") {
-        setWhiteTime(time => Math.max(time - seconds, 0))
+        setWhiteTime(time => Math.max(time - elapsed, 0))
       } else {
-        setBlackTime(time => Math.max(time - seconds, 0))
+        setBlackTime(time => Math.max(time - elapsed, 0))
       }
-    }, 1000)
+    }, 250)
 
     return () => clearInterval(interval)
   }, [game, gameOver])
 
   useEffect(() => {
-    if (!timeoutSent.current && (whiteTime === 0 || blackTime === 0)) {
+    if (!timeoutSent.current && (whiteTime <= 0 || blackTime <= 0)) {
       timeoutSent.current = true
       sendMessage({ type: "timeout" })
     }
@@ -233,14 +230,14 @@ function Game() {
     <main className="flex min-h-screen items-center justify-center">
       <div className="flex items-center gap-[2rem]">
         <div className="relative flex flex-col items-center">
-          <Clock seconds={color === "black" ? whiteTime : blackTime} />
+          <Clock milliseconds={color === "black" ? whiteTime : blackTime} />
           <ChessBoard
             game={game}
             playerColor={color === "white" ? "w" : "b"}
             orientation={color}
             onMove={sendMove}
           />
-          <Clock seconds={color === "white" ? whiteTime : blackTime} />
+          <Clock milliseconds={color === "white" ? whiteTime : blackTime} />
 
           {gameOver && (
             <div className="absolute left-1/2 top-1/2 w-[16rem] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-neutral-200 bg-white p-[1.5rem] text-center shadow-lg">

@@ -1,10 +1,11 @@
 interface ClockProps {
-  seconds: number
+  milliseconds: number
 }
 
-function Clock({ seconds }: ClockProps) {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
+function Clock({ milliseconds }: ClockProps) {
+  const totalSeconds = Math.floor(milliseconds / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const remainingSeconds = totalSeconds % 60
 
   const time = `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
 
