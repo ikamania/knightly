@@ -3,7 +3,7 @@ import { Outlet } from "react-router-dom"
 
 function Layout() {
   return (
-    <div className="h-screen overflow-hidden bg-white text-neutral-900">
+    <div className="min-h-screen bg-white text-neutral-900 lg:h-screen lg:overflow-hidden">
       <Navbar />
 
       <main>
