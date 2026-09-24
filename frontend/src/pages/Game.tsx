@@ -227,8 +227,8 @@ function Game() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <div className="flex items-center gap-[2rem]">
+    <main className="flex min-h-screen items-center justify-center px-4 py-4">
+      <div className="flex w-full max-w-[36rem] flex-col items-center gap-4 md:max-w-none md:flex-row md:justify-center md:gap-[2rem]">
         <div className="relative flex flex-col items-center">
           <Clock milliseconds={color === "black" ? whiteTime : blackTime} />
           <ChessBoard
@@ -255,7 +255,7 @@ function Game() {
           )}
         </div>
 
-        <div className="flex w-[8rem] flex-col gap-[0.75rem]">
+        <div className="flex w-full max-w-[var(--board-width)] flex-col gap-[0.75rem] md:w-[8rem]">
           {drawOffer === "received" ? (
             <div className="flex w-full overflow-hidden rounded-md border border-neutral-300">
               <button
@@ -282,7 +282,7 @@ function Game() {
               disabled={!!gameOver || drawOffer === "sent"}
               className="w-full rounded-md border border-neutral-300 px-[1rem] py-[0.5rem] text-sm transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {drawOffer === "sent" ? "Offered" : "Draw"}
+              {drawOffer === "sent" ? "Offered" : "½"}
             </button>
           )}
 
@@ -291,7 +291,7 @@ function Game() {
             disabled={!!gameOver}
             className="w-full rounded-md bg-black px-[1rem] py-[0.5rem] text-sm text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Resign
+            ⚑
           </button>
         </div>
       </div>
