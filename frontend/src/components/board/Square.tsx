@@ -17,7 +17,7 @@ export default function Square({ isDark, piece, onPointerDown, onPointerUp, isLe
     <div
       onPointerUp={onPointerUp}
       onPointerDown={onPointerDown}
-      className={`w-[5rem] h-[5rem] flex items-center justify-center relative ${
+      className={`touch-none w-[var(--cell-size)] h-[var(--cell-size)] flex items-center justify-center relative ${
         isDark ? "bg-[#739552]" : "bg-[#ebecd0]"
       } ${isSelected ? "ring-2 ring-inset ring-yellow-400" : ""}`}
     >

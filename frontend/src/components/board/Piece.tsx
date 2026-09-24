@@ -10,6 +10,6 @@ type Props = {
 export default function Piece({ piece, color }: Props) {
   const name = color === "w" ? piece.toUpperCase() : piece
   return (
-    <img src={`${PIECES_ASSET_PATH}${name}.png`} className="w-[5rem] h-[5rem] select-none cursor-grab" />
+    <img src={`${PIECES_ASSET_PATH}${name}.png`} className="w-[var(--cell-size)] h-[var(--cell-size)] select-none cursor-grab" />
   )
 }

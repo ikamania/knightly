@@ -36,7 +36,8 @@ export default function ChessBoard({ game, playerColor, orientation, onMove }: P
 
   return (
     <div
-      className={`w-fit border select-none relative ${dragging ? "cursor-grabbing" : ""}`}
+      className={`w-fit border select-none relative touch-none ${dragging ? "cursor-grabbing" : ""}`}
+      style={{ "--cell-size": "clamp(2.25rem, 11vw, 5rem)" } as React.CSSProperties}
       onPointerMove={onPointerMove}
       onPointerLeave={cancelDrag}
     >
