@@ -42,7 +42,13 @@ function Navbar() {
 
         <button
           onClick={() => navigate(`/${user?.username}`)}
-          className="rounded-lg border border-neutral-200 px-4 py-2 transition hover:border-neutral-300 hover:bg-neutral-50"
+          className={
+            `rounded-lg border border-neutral-200 px-4 py-2 transition ${
+              isActive(`/${user?.username}`)
+                ? "text-neutral-900"
+                : "text-neutral-500 hover:border-neutral-300 hover:bg-neutral-50"
+            }`
+          }
         >
           {user?.username}
         </button>

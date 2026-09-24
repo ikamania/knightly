@@ -17,9 +17,9 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
-            <Route path="/puzzles" element={<Puzzles />} />  
+            <Route path="/puzzles" element={<Puzzles />} />
+            <Route path="/:username" element={<Profile />} />
           </Route>
-          <Route path="/:username" element={<Profile />} />
           <Route path="/play" element={<Play />} />  
           <Route path="/game/:id" element={<Game />} />
         </Route>
