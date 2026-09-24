@@ -165,7 +165,8 @@ export function useChessDrag(
 
   function cancelDrag() {
     setDragging(null)
-    clearSelection()
+
+    if (!selected) clearSelection()
   }
 
   return {
