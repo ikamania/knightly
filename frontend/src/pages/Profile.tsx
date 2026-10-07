@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
-import { getCurrentUser, getUserProfile, type UserProfile } from "../api/auth"
+import { useParams, useNavigate } from "react-router-dom"
+import { getCurrentUser, getUserProfile, logout, type UserProfile } from "../api/auth"
 import Loading from "./Loading"
+import { LogOut } from "lucide-react"
 
 function Profile() {
   const { username } = useParams()
@@ -12,6 +13,7 @@ function Profile() {
   const [error, setError] = useState("")
 
   const isOwnProfile = currentUser?.username === username
+  const navigate = useNavigate()
 
   useEffect(() => {
     async function fetchUsers() {
@@ -39,6 +41,11 @@ function Profile() {
     fetchUsers()
   }, [username])
 
+  async function handleLogout() {
+    logout()
+    window.location.reload()
+  }
+
   if (loading) return <Loading />
 
   if (error) return <Loading message={error} />
@@ -58,7 +65,7 @@ function Profile() {
         </h1>
       </div>
 
-      <div className="flex gap-10 mt-15">
+      <div className="flex gap-10 mt-15 items-end">
         <div>
           <p className="text-xs uppercase tracking-[0.15em] text-neutral-400">
             Username
@@ -76,6 +83,16 @@ function Profile() {
             {user?.email}
           </p>
         </div>
+
+        {isOwnProfile && (
+          <button
+            onClick={handleLogout}
+            className="mb-1 text-neutral-400 transition-colors hover:text-neutral-900"
+            aria-label="Log out"
+          >
+            <LogOut size={18} />
+          </button>
+        )}
       </div>
     </section>
   )
